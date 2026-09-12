@@ -113,7 +113,7 @@
         }
         animate();
 
-        function translateText() {
+        async function translateText() {
             const text = document.getElementById('userInput').value.trim();
             const resultArea = document.getElementById('resultArea');
             const btn = document.getElementById('translateBtn');
@@ -129,46 +129,49 @@
             resultArea.innerText = 'מפעיל מוח אנושי...';
             resultArea.className = 'w-full min-h-[80px] bg-slate-950/80 border border-slate-800 rounded-xl p-4 text-amber-400 whitespace-pre-wrap leading-relaxed text-base flex items-center justify-center text-center';
 
-            setTimeout(() => {
-                // פירוק הטקסט למשפטים או חלקים מופרדים
-                let parts = text.split(/(?:\.|\n|!|\?)+/).map(p => p.trim()).filter(p => p.length > 2);
-                
-                // מילות פתיחה / חפירות שצריך לסנן החוצה אם הן לבד
-                const fluffStarters = ["היוש", "הי", "הלו", "תקשיבו", "טוב", "אז", "ככה", "חברים", "שכבג", "נא", "בבקשה"];
-                
-                // מילות מפתח שמעידות על מידע קריטי (שעות, ציוד, פקודות)
-                const coreKeywords = ["חאקי", "שעה", "להגיע", "להביא", "לקחת", "שבט", "אניגמה", "אישור", "כסף", "טופס", "עד", "חייב", "צריך", "אסור", "מותר", "סרטון", "ילדים", "ב-", "מחר", "היום"];
+            const apiKey = "Sk-proj-qgl3UzOuLg7STagfj-YZ6N6bjDotJwNTZU7ilhSa2L-CsrdDMdj_buCjPbgTdsLfPOIStkfzEZT3BlbkFJDishvl1zGNJjWqlxkfbXnQxMkcz5PmnntFvVIwdRmGuYQf0-1rZvIfseWepkAQkpFrWi7vY6QA";
 
-                let extractedPoints = [];
-
-                parts.forEach(part => {
-                    let isFluff = fluffStarters.some(fluff => part === fluff);
-                    let hasCoreInfo = coreKeywords.some(kw => part.includes(kw)) || /\d/.test(part);
-
-                    // אם יש פה מידע אמיתי (או שזו לפחות שורה משמעותית בלי חפירות מובהקות)
-                    if (!isFluff && (hasCoreInfo || parts.length <= 2)) {
-                        // נקה מילות פתיחה מיותרות מתחילת המשפט אם ישנן
-                        let cleaned = part.replace(/^(היוש|הי|תקשיבו|טוב אז ככה|חברים)\s*/i, '');
-                        if (cleaned.length > 2 && !extractedPoints.includes(cleaned)) {
-                            extractedPoints.push(cleaned);
-                        }
-                    }
+            try {
+                const response = await fetch("https://api.openai.com/v1/chat/completions", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${apiKey}`
+                    },
+                    body: JSON.stringify({
+                        model: "gpt-4o-mini",
+                        messages: [
+                            {
+                                role: "system",
+                                content: "אתה כלי תרגום להודעות ארוכות וחופרות (בעיקר הודעות שבט/מסגרות). המטרה שלך היא לקחת הודעה ארוכה ומלאה במילות מילוי, לחלץ אך ורק את השורה התחתונה, המשימות הנדרשות, זמנים, מקומות ולבוש, ולהציג את זה בצורה הכי קצרה, חדה וישירה שיש (בתבליטים). בלי פתיחות ובלי שטויות."
+                            },
+                            {
+                                role: "user",
+                                content: text
+                            }
+                        ],
+                        temperature: 0.3
+                    })
                 });
 
-                // אם האלגוריתם לא מצא נקודות ספציפיות, ניקח את המשפטים המקוריים וננקה אותם
-                if (extractedPoints.length === 0) {
-                    extractedPoints = parts.map(p => p.replace(/^(היוש|הי|תקשיבו|טוב אז ככה)\s*/i, ''));
+                const data = await response.json();
+
+                if (data.choices && data.choices.length > 0) {
+                    const translation = data.choices[0].message.content.trim();
+                    resultArea.innerText = translation;
+                    resultArea.className = 'w-full min-h-[80px] bg-slate-950/80 border border-slate-800 rounded-xl p-4 text-slate-100 whitespace-pre-wrap leading-relaxed text-base text-right justify-start';
+                } else {
+                    resultArea.innerText = 'שגיאה בתרגום ההודעה.';
+                    resultArea.className = 'w-full min-h-[80px] bg-slate-950/80 border border-slate-800 rounded-xl p-4 text-red-400 whitespace-pre-wrap leading-relaxed text-base flex items-center justify-center text-center';
                 }
 
-                // בניית הפלט הסופי בצורה נקייה עם תבליטים
-                let finalOutput = extractedPoints.map(pt => "• " + pt).join('\n');
-
-                resultArea.innerText = finalOutput;
-                resultArea.className = 'w-full min-h-[80px] bg-slate-950/80 border border-slate-800 rounded-xl p-4 text-slate-100 whitespace-pre-wrap leading-relaxed text-base text-right justify-start';
-                
+            } catch (error) {
+                resultArea.innerText = 'תקלת תקשורת מול השרת.';
+                resultArea.className = 'w-full min-h-[80px] bg-slate-950/80 border border-slate-800 rounded-xl p-4 text-red-400 whitespace-pre-wrap leading-relaxed text-base flex items-center justify-center text-center';
+            } finally {
                 btn.disabled = false;
                 btn.innerText = "תרגום";
-            }, 500);
+            }
         }
     </script>
 </body>
