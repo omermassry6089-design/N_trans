@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>נחום Translate</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            margin: 0;
+            background-color: #0f172a;
+            font-family: system-ui, -apple-system, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow-x: hidden;
+        }
+        #bgCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+        }
+    </style>
+</head>
+<body>
+
+    <canvas id="bgCanvas"></canvas>
+
+    <div class="w-full max-w-xl bg-slate-900/90 backdrop-blur-md border border-slate-800 p-6 md:p-8 rounded-2xl shadow-2xl relative z-10 m-4">
+        <div class="flex justify-between items-center mb-6">
+            <div>
+                <h1 class="text-3xl font-black text-sky-400 mb-1 flex items-center gap-2">
+                    <span>🤖</span> נחום Translate
+                </h1>
+                <p class="text-slate-400 text-sm">תכתוב הודעת נחום, ותקבל הודעה שמוח אנושי יכול להבין</p>
+            </div>
+        </div>
+
+        <div class="space-y-4">
+            <div>
+                <textarea 
+                    id="userInput" 
+                    placeholder="שפת נחום"
+                    class="w-full h-36 bg-slate-950/60 border border-slate-700 rounded-xl p-4 text-slate-100 placeholder-slate-500 focus:outline-none focus:border-sky-400 focus:ring-1 focus:ring-sky-400 transition resize-none text-base"
+                ></textarea>
+            </div>
+
+            <button 
+                onclick="translateText()" 
+                id="translateBtn"
+                class="w-full bg-sky-500 hover:bg-sky-400 text-slate-950 font-bold py-3.5 px-6 rounded-xl transition duration-200 shadow-lg shadow-sky-500/20 active:scale-[0.99] cursor-pointer text-lg"
+            >
+                תרגום
+            </button>
+
+            <div class="mt-6 pt-4 border-t border-slate-800">
+                <div class="text-xs font-semibold text-slate-400 mb-2 uppercase tracking-wider">השורה התחתונה (תכל'ס):</div>
+                <div 
+                    id="resultArea" 
+                    class="w-full min-h-[80px] bg-slate-950/80 border border-slate-800 rounded-xl p-4 text-slate-400 whitespace-pre-wrap leading-relaxed text-base flex items-center justify-center text-center"
+                >
+                    שפה נורמלית
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('bgCanvas');
+        const ctx = canvas.getContext('2d');
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        const particles = Array.from({ length: 40 }, () => ({
+            x: Math.random() * canvas.width,
+            y: Math.random() * canvas.height,
+            size: Math.random() * 2 + 1,
+            speedX: (Math.random() - 0.5) * 0.5,
+            speedY: (Math.random() - 0.5) * 0.5,
+            opacity: Math.random() * 0.5 + 0.2
+        }));
+
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            particles.forEach(p => {
+                p.x += p.speedX;
+                p.y += p.speedY;
+
+                if (p.x < 0) p.x = canvas.width;
+                if (p.x > canvas.width) p.x = 0;
+                if (p.y < 0) p.y = canvas.height;
+                if (p.y > canvas.height) p.y = 0;
+
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                ctx.fillStyle = `rgba(56, 189, 248, ${p.opacity})`;
+                ctx.fill();
+            });
+
+            requestAnimationFrame(animate);
+        }
+        animate();
+
+        function translateText() {
+            const text = document.getElementById('userInput').value.trim();
+            const resultArea = document.getElementById('resultArea');
+            const btn = document.getElementById('translateBtn');
+
+            if (!text) {
+                resultArea.innerText = 'נא להכניס טקסט תחילה.';
+                resultArea.className = 'w-full min-h-[80px] bg-slate-950/80 border border-slate-800 rounded-xl p-4 text-amber-400 whitespace-pre-wrap leading-relaxed text-base flex items-center justify-center text-center';
+                return;
+            }
+
+            btn.disabled = true;
+            btn.innerText = 'מתרגם...';
+            resultArea.innerText = 'מפעיל מוח אנושי...';
+            resultArea.className = 'w-full min-h-[80px] bg-slate-950/80 border border-slate-800 rounded-xl p-4 text-amber-400 whitespace-pre-wrap leading-relaxed text-base flex items-center justify-center text-center';
+
+            setTimeout(() => {
+                // פירוק הטקסט למשפטים או חלקים מופרדים
+                let parts = text.split(/(?:\.|\n|!|\?)+/).map(p => p.trim()).filter(p => p.length > 2);
+                
+                // מילות פתיחה / חפירות שצריך לסנן החוצה אם הן לבד
+                const fluffStarters = ["היוש", "הי", "הלו", "תקשיבו", "טוב", "אז", "ככה", "חברים", "שכבג", "נא", "בבקשה"];
+                
+                // מילות מפתח שמעידות על מידע קריטי (שעות, ציוד, פקודות)
+                const coreKeywords = ["חאקי", "שעה", "להגיע", "להביא", "לקחת", "שבט", "אניגמה", "אישור", "כסף", "טופס", "עד", "חייב", "צריך", "אסור", "מותר", "סרטון", "ילדים", "ב-", "מחר", "היום"];
+
+                let extractedPoints = [];
+
+                parts.forEach(part => {
+                    let isFluff = fluffStarters.some(fluff => part === fluff);
+                    let hasCoreInfo = coreKeywords.some(kw => part.includes(kw)) || /\d/.test(part);
+
+                    // אם יש פה מידע אמיתי (או שזו לפחות שורה משמעותית בלי חפירות מובהקות)
+                    if (!isFluff && (hasCoreInfo || parts.length <= 2)) {
+                        // נקה מילות פתיחה מיותרות מתחילת המשפט אם ישנן
+                        let cleaned = part.replace(/^(היוש|הי|תקשיבו|טוב אז ככה|חברים)\s*/i, '');
+                        if (cleaned.length > 2 && !extractedPoints.includes(cleaned)) {
+                            extractedPoints.push(cleaned);
+                        }
+                    }
+                });
+
+                // אם האלגוריתם לא מצא נקודות ספציפיות, ניקח את המשפטים המקוריים וננקה אותם
+                if (extractedPoints.length === 0) {
+                    extractedPoints = parts.map(p => p.replace(/^(היוש|הי|תקשיבו|טוב אז ככה)\s*/i, ''));
+                }
+
+                // בניית הפלט הסופי בצורה נקייה עם תבליטים
+                let finalOutput = extractedPoints.map(pt => "• " + pt).join('\n');
+
+                resultArea.innerText = finalOutput;
+                resultArea.className = 'w-full min-h-[80px] bg-slate-950/80 border border-slate-800 rounded-xl p-4 text-slate-100 whitespace-pre-wrap leading-relaxed text-base text-right justify-start';
+                
+                btn.disabled = false;
+                btn.innerText = "תרגום";
+            }, 500);
+        }
+    </script>
+</body>
+</html>
